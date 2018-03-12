@@ -127,7 +127,7 @@ ViewPropertyAnimator使用:
         ViewPropertyAnimator提供了旋转,透明度,位移,缩放的操作.对于其他自定义的属性,该类无法使用.  
 ```
   
-ObjectAnimator使用:  
+ObjectAnimator使用: 对于只传了1个值得情况,需要给属性提供get方法,多个值得情况,可以不需要get方法    
 ```
         ObjectAnimator.ofFloat(view,"translationX",100).setDuration(100).start();
         
@@ -345,6 +345,12 @@ ViewPropertyAnimation原理分析:
 ```
   public final void doAnimationFrame(long frameTime) {
         .......
+        if (mStartDelay > 0) {//第一帧
+        //这里面会调用initAnimation.如果是ObjectAnimator.这面会通过反射查找setter方法.
+        //如果没有设置初始值则会查找getter方法.并设置初始值.
+            startAnimation();
+        }
+        .....
         final long currentTime = Math.max(frameTime, mStartTime);
         boolean finished = animateBasedOnTime(currentTime);
 
