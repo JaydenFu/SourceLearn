@@ -710,5 +710,6 @@ onInterceptTouchEvent.onTouchEvent3个方法.
 ->  ViewGroup.dispatchTransformTouchEvent()
 ->  View.dispatchTouchEvent()
 ->  View.onTouchEvent()
+到这里就分析结束啦.
 
 
