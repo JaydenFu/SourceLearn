@@ -693,6 +693,7 @@ onInterceptTouchEvent.onTouchEvent3个方法.
 ```
 
 总结调用流程: 对于一次点击事件
+```
 -> InputEventReceiver.dispatchTouchEvent()
 -> ViewRootImpl.WindowInputEventReceiver.onInputEvent()
 -> ViewRootImpl.enqueueInputEvent()
@@ -712,5 +713,6 @@ onInterceptTouchEvent.onTouchEvent3个方法.
 -> View.onTouchEvent()
 
 到这里就分析结束啦.
+```
 
 
