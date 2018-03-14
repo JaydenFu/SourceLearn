@@ -8,6 +8,7 @@
 * View.postInvalidateOnAnimation().当接收到下一帧脉冲时,调用view的invalidate方法
 * Choreographer.postFrameCallback(FrameCallback callback),当接收到下一帧脉冲时,回调FrameCallback的doFrame方法.通过该方法,我们可以自己
 实现监控是否丢帧的问题.
+
 通过查看上述方法的源码,最后其实都是通过ViewRootImpl中的Choreographer来完成工作调度的.
 
 1.  ViewRootImpl的构造方法中获取Choreographer实例.
