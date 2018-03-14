@@ -306,6 +306,7 @@ ViewPropertyAnimation原理分析:
             //执行这一帧的操作
             doAnimationFrame(getProvider().getFrameTime());
             //如果mAnimationCallbacks不为空,则继续通过Choreographer接收下一帧来临回调.
+            //当一个ValueAnimator动画结束时,会通过removeremoveCallback从mAnimationCallbacks移除回调
             if (mAnimationCallbacks.size() > 0) {
                 getProvider().postFrameCallback(this);
             }
