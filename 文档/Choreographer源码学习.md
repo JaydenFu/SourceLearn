@@ -175,6 +175,7 @@ Choreographer的callbackType:
 8. Choreographer的scheduleFrameLocked方法:
 ```
         private void scheduleFrameLocked(long now) {
+            //mFrameScheduled标志用于是否已经发起(结束)接受帧脉冲.当为true时,说明当次调度还没结束.不做其他处理
             if (!mFrameScheduled) {
                 mFrameScheduled = true;
                 if (USE_VSYNC) {//默认为true.
@@ -234,6 +235,8 @@ Choreographer的callbackType:
                     + "receiver has already been disposed.");
         } else {
             //native层去申请接收下一帧vsync,只有通过该方法申请了.才会接收到信号.
+            //这里具体是否是这样,并不是从代码从分析出的.而是我在主线程sleep几百毫秒,发现没有打印跳帧的日志.
+            //从而判断onVsync方法没有被调用.
             nativeScheduleVsync(mReceiverPtr);
         }
     }
@@ -404,6 +407,11 @@ Choreographer的callbackType:
         final long startNanos;
         synchronized (mLock) {
           .....
+            //当mFrameScheduled为false时,不做任何处理
+            if (!mFrameScheduled) {
+                  return; // no work to do
+            }
+
             //frameTimeNanos为绘制帧的时间点.
             long intendedFrameTimeNanos = frameTimeNanos;
             //当前时间点
@@ -447,6 +455,8 @@ Choreographer的callbackType:
             }
 
             mFrameInfo.setVsync(intendedFrameTimeNanos, frameTimeNanos);
+
+            //将mFrameScheduled标志设置false.可以再次接受scheduleFrameLocked调用
             mFrameScheduled = false;
             //保存上一帧绘制的时间.
             mLastFrameTimeNanos = frameTimeNanos;
@@ -563,17 +573,17 @@ void doCallbacks(int callbackType, long frameTimeNanos) {
 ->  Choregrapher.postCallback(), postFrameCallback()
 ->  Choreographer.postCallbackDelayInternal()
 ->  CallbackQueue.addCallbackLocked()
-->  Choregrapher.scheduleFrameLocked()
+->  Choregrapher.scheduleFrameLocked()  在这里会设置mFrameScheduled值为true
 ->  Choregrapher.scheduleVsyncLocked()
 ->  FrameDisplayEventReceiver.scheduleVsync()
-->  DisplayEventReceiver.nativeScheduleVsync()
+->  DisplayEventReceiver.nativeScheduleVsync() 一定需要通过该放法申请了,才会接受到event.
 ->  native层的DisplayEventDispatcher.handEvent()
 ->  nvative层的DisplayEventDispatcher.processPendingEvents()
 ->  native层的NativeDisplayEventReceiver.dispatchVsync()
 ->  这里回到java层:DisplayEventReceiver.dispatchVsync()
 ->  Choregrapher.FrameDisplayEventReceiver.onVsync()
 ->  FrameDisplayEventReceiver.run()
-->  Choreographer.doFrame()
+->  Choreographer.doFrame() 在这里会判断mFrameScheduled值,如果不为true,则不做任何处理,如果为true,在执行doCallback前设置mFrameScheduled为false.
 ->  Choreographer.doCallbacks()
 ->  ChallbackRecord.run()
 ->  开始添加的为Runnbale则回调其run方法.为FrameCallback,则回调其doFrame方法.
