@@ -434,9 +434,9 @@ public void addView(View view, ViewGroup.LayoutParams params,
         }
     }
 ```
-16. ThreadRenderer的draw方法:在内部执行updateRootDisplayList方法
+16. ThreadedRender的draw方法:在内部执行updateRootDisplayList方法
 ```
-    至于ThreadRenderer是个啥?后面在学习Android的硬件加速渲染机制的时候再了解.
+    至于ThreadedRender是个啥?后面在学习Android的硬件加速渲染机制的时候再了解.
 
     void draw(View view, AttachInfo attachInfo, HardwareDrawCallbacks callbacks) {
         .....
@@ -444,7 +444,7 @@ public void addView(View view, ViewGroup.LayoutParams params,
         .......
     }
 ```
-17. ThreadRenderer的updateRootDisplayList方法:在方法内部执行updateViewTreeDisplayList方法
+17. ThreadedRender的updateRootDisplayList方法:在方法内部执行updateViewTreeDisplayList方法
 ```
     private void updateRootDisplayList(View view, HardwareDrawCallbacks callbacks) {
         ......
@@ -453,7 +453,7 @@ public void addView(View view, ViewGroup.LayoutParams params,
     }
 
 ```
-18. ThreadRenderer的updateViewTreeDisplayList方法:
+18. ThreadedRender的updateViewTreeDisplayList方法:
 ```
        private void updateViewTreeDisplayList(View view) {
            //这里的View其实就是DecorView.给DecorView设置View.PFLAG_DRAWN标识,表示可以被draw
@@ -605,9 +605,9 @@ public void addView(View view, ViewGroup.LayoutParams params,
     //至于是否会触发再次执行测量和layout过程,要看发起requestLayout的子View的状态.具体状态看第13步中.
 ->  ViewRootImpl.performDraw()
 ->  ViewRootImpl.draw()
-->  ThreadRender.draw() 硬件加速,4.0系统以上默认开启.
-->  ThreadRender.updateRootDisplayList()
-->  TheadRender.updateViewTreeDisplayList()
+->  ThreadedRender.draw() 硬件加速,4.0系统以上默认开启.
+->  ThreadedRender.updateRootDisplayList()
+->  TheadedRender.updateViewTreeDisplayList()
 ->  DecorView.updateDisplayListIfDirty()    DecorView继承自FrameLayout,其实执行的是View的updateDisplayListIfDirty方法
 ->  DecorView.draw()    DecorView继承自FrameLayout,其实执行的是View的draw方法.
 ```
