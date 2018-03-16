@@ -1,0 +1,235 @@
+#   View的绘制流程(二)
+在第一节中已经分析顶级View的measure,layout.draw方法是如何被触发的.现在来分析从DecorView一层一层如何measure,layout.draw
+
+1.  View的measure方法:该方法是final的,所以View的任何子类都是不能覆写该方法的.因此,对于DecorView而言,measure方法也是执行的
+View本身measure方法.
+```
+   public final void measure(int widthMeasureSpec, int heightMeasureSpec) {
+
+        //将宽/高 MeasureSpec组合成64为的一个long值(宽MeasureSpec作为高32位,高MeasureSpec作为低32位),作为
+        //测量缓存的key值.
+        long key = (long) widthMeasureSpec << 32 | (long) heightMeasureSpec & 0xffffffffL;
+        if (mMeasureCache == null) mMeasureCache = new LongSparseLongArray(2);
+
+        //是否被设置了PFLAG_FORCE_LAYOUT标志,调用reqeustLayout就会可能被设置该标识.
+        //至于是否设置该标志可以参考View绘制第一节中第13步performLayout.
+        final boolean forceLayout = (mPrivateFlags & PFLAG_FORCE_LAYOUT) == PFLAG_FORCE_LAYOUT;
+
+        //当前传递下来的MesaureSpec和父容器之前传递下来的MeasureSpec是否改变了.
+        final boolean specChanged = widthMeasureSpec != mOldWidthMeasureSpec
+                || heightMeasureSpec != mOldHeightMeasureSpec;
+
+        //父容器对当前View的测量模式是否限定为EXACTLY.
+        final boolean isSpecExactly = MeasureSpec.getMode(widthMeasureSpec) == MeasureSpec.EXACTLY
+                && MeasureSpec.getMode(heightMeasureSpec) == MeasureSpec.EXACTLY;
+
+        //上一次测量值和当前父容器传递下来的可用值是否一致.
+        final boolean matchesSpecSize = getMeasuredWidth() == MeasureSpec.getSize(widthMeasureSpec)
+                && getMeasuredHeight() == MeasureSpec.getSize(heightMeasureSpec);
+
+        //sAlwaysRemeasureExactly该参数可以忽略.默认是false的.
+        //判断是否需要layout.需要满足2个条件
+        //1.父容器传递的MeasureSpec改变了.不管是大小,还是模式.
+        //2.当次的模式不为Exactly或者当次的大小和上次测量完成的大小不一致.
+        final boolean needsLayout = specChanged
+                && (sAlwaysRemeasureExactly || !isSpecExactly || !matchesSpecSize);
+
+        if (forceLayout || needsLayout) {
+            // first clears the measured dimension flag
+            //清除PFLAG_MEASURED_DIMENSION_SET,该标识表示已经给该View设定测量大小,在setMeasuredDimensionRaw方法中设置.
+            mPrivateFlags &= ~PFLAG_MEASURED_DIMENSION_SET;
+           ......
+
+            //如果View并没有发起reqeustLayout.则可以查找是否有可用的测量缓存.这里缓存可能是多次的.
+            //forceLayour为false的情况下,能进入这里,首先肯定当次的MeasureSpec和上次的不一致.但是不代表和更之前的不一致.
+            //所以是可能存在缓存的
+            int cacheIndex = forceLayout ? -1 : mMeasureCache.indexOfKey(key);
+
+            //sIgnoreMeasureCache可以忽略,默认为false
+            if (cacheIndex < 0 || sIgnoreMeasureCache) {
+                //如果没有缓存,就调用onMeasure去实际的完成View的大小测量.
+                onMeasure(widthMeasureSpec, heightMeasureSpec);
+                //清除PFLAG3_MEASURE_NEEDED_BEFORE_LAYOUT标识.在View的layout操作具体执行前,不需要再次测量了.
+                mPrivateFlags3 &= ~PFLAG3_MEASURE_NEEDED_BEFORE_LAYOUT;
+            } else {
+                //如果查找到了缓存.就直接使用缓存的测量值就好了.
+                long value = mMeasureCache.valueAt(cacheIndex);
+                setMeasuredDimensionRaw((int) (value >> 32), (int) value);
+                //这个缓存值不一定对,所以会设置PFLAG3_MEASURE_NEEDED_BEFORE_LAYOUT,表示View layout之前需要重新测量.
+                mPrivateFlags3 |= PFLAG3_MEASURE_NEEDED_BEFORE_LAYOUT;
+            }
+
+            if ((mPrivateFlags & PFLAG_MEASURED_DIMENSION_SET) != PFLAG_MEASURED_DIMENSION_SET) {
+                throw new IllegalStateException("View with id " + getId() + ": "
+                        + getClass().getName() + "#onMeasure() did not set the"
+                        + " measured dimension by calling"
+                        + " setMeasuredDimension()");
+            }
+            //设置PFLAG_LAYOUT_REQUIRED,表示要求执行onLayout方法
+            mPrivateFlags |= PFLAG_LAYOUT_REQUIRED;
+        }
+
+        //将当次的MeasureSpec保存.作为下次measure被调用时的上次参考值.
+        mOldWidthMeasureSpec = widthMeasureSpec;
+        mOldHeightMeasureSpec = heightMeasureSpec;
+
+        //保存测量缓存值,值也是有宽高的实际测量值组合成64为的值.宽的值在高32为,高的值在低32位.
+        mMeasureCache.put(key, ((long) mMeasuredWidth) << 32 |
+                (long) mMeasuredHeight & 0xffffffffL); // suppress sign extension
+    }
+
+```
+2.  View的onMeasure方法:
+* 对于View的子类而言其实都是需要自己去覆写该方法的.因为如果是容器View.当是WRAP_CONTENT时,需要根据子View的宽高去设置自己的宽高,
+  而对于普通的View而言,也同样需要自己去根据自己的内容来设置自己的大小.否则WRAP_CONTENT会失效.
+```
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        //setMeasureDimmsion方法通过调用setMeasureDimmsionRaw方法设置测量值.并设置PFLAG_MEASURED_DIMENSION_SET标识.
+        //表示测量值已经确定了.
+        setMeasuredDimension(getDefaultSize(getSuggestedMinimumWidth(), widthMeasureSpec),
+                getDefaultSize(getSuggestedMinimumHeight(), heightMeasureSpec));
+    }
+
+    //getSuggestedMinimumHeight方法与该方法类似
+    protected int getSuggestedMinimumWidth() {
+        //1.没有设置背景Drawable,则返回的是设置给View的最小宽度.
+        //2.设置了背景Drawable,则返回的是最小宽度和Drawable本身的宽的最大值.只有BitmapDrawable这样的drawable才有本身宽高.
+        return (mBackground == null) ? mMinWidth : max(mMinWidth, mBackground.getMinimumWidth());
+    }
+
+    //从getDefaultSize中我们可以知道:
+    //1.当父容器指定的模式为UMSPECIFIED时,则View的大小就是最小值.
+    //2.当父容器指定的模式为EXACTLP时,则View的大小就是父容器传递下来的大小.
+    //3.当父容器指定的模式为ATMOST是,则View的大小也是父容器传递下来的大小.因此就存在一个问题.当View的WRAP_CONTENT时,
+    //如果我们自己没有重写onMeasure方法时,View大小始终是父容器传递下来的值.
+    public static int getDefaultSize(int size, int measureSpec) {
+        int result = size;
+        int specMode = MeasureSpec.getMode(measureSpec);
+        int specSize = MeasureSpec.getSize(measureSpec);
+
+        switch (specMode) {
+        case MeasureSpec.UNSPECIFIED:
+            result = size;
+            break;
+        case MeasureSpec.AT_MOST:
+        case MeasureSpec.EXACTLY:
+            result = specSize;
+            break;
+        }
+        return result;
+    }
+
+    protected final void setMeasuredDimension(int measuredWidth, int measuredHeight) {
+            .....
+        setMeasuredDimensionRaw(measuredWidth, measuredHeight);
+    }
+
+    private void setMeasuredDimensionRaw(int measuredWidth, int measuredHeight) {
+        mMeasuredWidth = measuredWidth;
+        mMeasuredHeight = measuredHeight;
+        mPrivateFlags |= PFLAG_MEASURED_DIMENSION_SET;
+    }
+
+```
+3.  这里以FrameLayout为列:来看它实现的onMeasure方法:
+```
+protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        int count = getChildCount();
+
+        //根据父容器限定的测量模式判断是否需要再次测量宽高不会MATCH_PARENT的子View.
+        //因为当父容器指定的测量模式是EXACTLY时,则不管子View如何,自己的大小总是固定的.所以对于子View是MATCH_PARENT而言,它的
+        //宽高也会相应的是固定的.就不会要再测量.
+        final boolean measureMatchParentChildren =
+                MeasureSpec.getMode(widthMeasureSpec) != MeasureSpec.EXACTLY ||
+                MeasureSpec.getMode(heightMeasureSpec) != MeasureSpec.EXACTLY;
+        mMatchParentChildren.clear();
+
+        int maxHeight = 0;
+        int maxWidth = 0;
+        int childState = 0;
+
+        for (int i = 0; i < count; i++) {
+            final View child = getChildAt(i);
+
+            //mMeasureAllChildren默认为false.当改值被设置为true时,不管子View是不是GONE状态.都会被测量.
+            //所以这里通常只是更具child的显示状态如果不是GONE,则就会对其进行测量.
+            if (mMeasureAllChildren || child.getVisibility() != GONE) {
+
+                measureChildWithMargins(child, widthMeasureSpec, 0, heightMeasureSpec, 0);
+                final LayoutParams lp = (LayoutParams) child.getLayoutParams();
+
+                maxWidth = Math.max(maxWidth,
+                        child.getMeasuredWidth() + lp.leftMargin + lp.rightMargin);
+                maxHeight = Math.max(maxHeight,
+                        child.getMeasuredHeight() + lp.topMargin + lp.bottomMargin);
+
+                childState = combineMeasuredStates(childState, child.getMeasuredState());
+
+                if (measureMatchParentChildren) {
+                    if (lp.width == LayoutParams.MATCH_PARENT ||
+                            lp.height == LayoutParams.MATCH_PARENT) {
+                        mMatchParentChildren.add(child);
+                    }
+                }
+            }
+        }
+
+        // Account for padding too
+        maxWidth += getPaddingLeftWithForeground() + getPaddingRightWithForeground();
+        maxHeight += getPaddingTopWithForeground() + getPaddingBottomWithForeground();
+
+        // Check against our minimum height and width
+        maxHeight = Math.max(maxHeight, getSuggestedMinimumHeight());
+        maxWidth = Math.max(maxWidth, getSuggestedMinimumWidth());
+
+        // Check against our foreground's minimum height and width
+        final Drawable drawable = getForeground();
+        if (drawable != null) {
+            maxHeight = Math.max(maxHeight, drawable.getMinimumHeight());
+            maxWidth = Math.max(maxWidth, drawable.getMinimumWidth());
+        }
+
+        setMeasuredDimension(resolveSizeAndState(maxWidth, widthMeasureSpec, childState),
+                resolveSizeAndState(maxHeight, heightMeasureSpec,
+                        childState << MEASURED_HEIGHT_STATE_SHIFT));
+
+        count = mMatchParentChildren.size();
+        if (count > 1) {
+            for (int i = 0; i < count; i++) {
+                final View child = mMatchParentChildren.get(i);
+                final MarginLayoutParams lp = (MarginLayoutParams) child.getLayoutParams();
+
+                final int childWidthMeasureSpec;
+                if (lp.width == LayoutParams.MATCH_PARENT) {
+                    final int width = Math.max(0, getMeasuredWidth()
+                            - getPaddingLeftWithForeground() - getPaddingRightWithForeground()
+                            - lp.leftMargin - lp.rightMargin);
+                    childWidthMeasureSpec = MeasureSpec.makeMeasureSpec(
+                            width, MeasureSpec.EXACTLY);
+                } else {
+                    childWidthMeasureSpec = getChildMeasureSpec(widthMeasureSpec,
+                            getPaddingLeftWithForeground() + getPaddingRightWithForeground() +
+                            lp.leftMargin + lp.rightMargin,
+                            lp.width);
+                }
+
+                final int childHeightMeasureSpec;
+                if (lp.height == LayoutParams.MATCH_PARENT) {
+                    final int height = Math.max(0, getMeasuredHeight()
+                            - getPaddingTopWithForeground() - getPaddingBottomWithForeground()
+                            - lp.topMargin - lp.bottomMargin);
+                    childHeightMeasureSpec = MeasureSpec.makeMeasureSpec(
+                            height, MeasureSpec.EXACTLY);
+                } else {
+                    childHeightMeasureSpec = getChildMeasureSpec(heightMeasureSpec,
+                            getPaddingTopWithForeground() + getPaddingBottomWithForeground() +
+                            lp.topMargin + lp.bottomMargin,
+                            lp.height);
+                }
+
+                child.measure(childWidthMeasureSpec, childHeightMeasureSpec);
+            }
+        }
+    }
+
+```
