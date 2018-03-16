@@ -449,6 +449,24 @@ public void addView(View view, ViewGroup.LayoutParams params,
     private void updateRootDisplayList(View view, HardwareDrawCallbacks callbacks) {
         ......
         updateViewTreeDisplayList(view);
+         if (mRootNodeNeedsUpdate || !mRootNode.isValid()) {
+                DisplayListCanvas canvas = mRootNode.start(mSurfaceWidth, mSurfaceHeight);
+                try {
+                    final int saveCount = canvas.save();
+                    canvas.translate(mInsetLeft, mInsetTop);
+                    callbacks.onHardwarePreDraw(canvas);
+
+                    canvas.insertReorderBarrier();
+                    canvas.drawRenderNode(view.updateDisplayListIfDirty());
+                    canvas.insertInorderBarrier();
+
+                    callbacks.onHardwarePostDraw(canvas);
+                    canvas.restoreToCount(saveCount);
+                    mRootNodeNeedsUpdate = false;
+                } finally {
+                    mRootNode.end(canvas);
+                }
+         }
         ......
     }
 
