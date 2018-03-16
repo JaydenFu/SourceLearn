@@ -1,4 +1,4 @@
-#   View的绘制流程(二)
+#   View的绘制流程(二) -- measure过程
 在第一节中已经分析顶级View的measure,layout.draw方法是如何被触发的.现在来分析从DecorView一层一层如何measure,layout.draw
 
 1.  View的measure方法:该方法是final的,所以View的任何子类都是不能覆写该方法的.因此,对于DecorView而言,measure方法也是执行的
