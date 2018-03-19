@@ -176,7 +176,7 @@ Choreographer的callbackType:
 8. Choreographer的scheduleFrameLocked方法:
 ```
         private void scheduleFrameLocked(long now) {
-            //mFrameScheduled标志用于是否已经发起(结束)接受帧脉冲.当为true时,说明当次调度还没结束.不做其他处理
+            //mFrameScheduled标志用于是否已经发起(结束)接受帧脉冲.当为true时,说明当次调度还没结束.不做其他处理,只有它为true.后续的vsyn事件来临,才会处理.
             if (!mFrameScheduled) {
                 mFrameScheduled = true;
                 if (USE_VSYNC) {//默认为true.
@@ -235,9 +235,7 @@ Choreographer的callbackType:
             Log.w(TAG, "Attempted to schedule a vertical sync pulse but the display event "
                     + "receiver has already been disposed.");
         } else {
-            //native层去申请接收下一帧vsync,只有通过该方法申请了.才会接收到信号.
-            //这里具体是否是这样,并不是从代码从分析出的.而是我在主线程sleep几百毫秒,发现没有打印跳帧的日志.
-            //从而判断onVsync方法没有被调用.
+            //该方法在帧率大于0的时候,没啥用.注释中是这么写的.
             nativeScheduleVsync(mReceiverPtr);
         }
     }
