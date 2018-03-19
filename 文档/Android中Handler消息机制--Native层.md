@@ -354,3 +354,37 @@ void Looper::wake() {
 }
 
 ```
+
+```
+总结:其实对于Native层主要就是3块逻辑.nativeInit. nativePollOnce. nativeWake
+
+nativeInit流程:
+->  Java 层MessageQueue的构造方法:
+->  MessageQueue.nativeInit
+->  android_os_MessageQueue.cpp的android_os_MessageQueue_nativeInit
+->  创建NativeMessageQueue
+->  创建Native层的Looper
+->  Looper构造函数中创建mWakeEventFd唤醒文件描述符,并执行rebuildEpollLocked.
+->  执行epoll_create创建epoll实例
+->  执行epoll_ctl,将mWakeEventFd文件描述符注册监听EPOLLIN(可读)事件.
+
+nativePollOnce流程:
+->  Java层MessageQueue的nativePollOnce
+->  android_os_MessageQueue.cpp中的android_os_MessageQueue_nativePollOnce
+->  NativeMessageQueue.pollOnce
+->  Native层Looper.pollOnce
+->  Native层Looper.pollInner
+->  epoll_wait 可能阻塞,等待监听文件描述符事件 的回调.当有可执行事件的,立即返回,返回值为处理事件的数目.
+    阻塞的超时时间由外面调用nativePollOnce时传入的超时时间和native层loop发送的消息执行时间共同决定.
+->  有mWakeEventFd的EPOLLIN事件.执行awoken.清空mWakeEventFd文件描述符所代表文件中的内容.
+->  将其他文件描述符事件封装成Respouse装到mResponse集合中.
+->  处理Native层的消息.
+->  处理mResponse中的事件集合.
+
+nativeWake流程:
+->  Java层MessageQueue的nativeWake
+->  android_os_MessageQueue.cpp 的android_os_MessageQueue_nativeWake
+->  NativeMessageQueue.wake
+->  Native层Looper.wake
+->  向mWakeEventFd文件描述符表示的文件中写入内容.
+```
