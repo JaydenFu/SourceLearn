@@ -8,22 +8,22 @@ Binder是Android提供给我们的一种进程间通信的方式.平时我们开
 
 完整Bidner架构,贯穿了应用层.Native层.内核层.
 
-内核层: Binder驱动程序.
+内核层: Binder驱动程序.    Binder实际对象, Binder引用对象
 
     进程创建的时候会初始化ProcesState,初始化过程中会调用open系统调用打开binder驱动.获取到对应的文件描述符.同时会通过mmap系统调用将用户空间的虚拟地址
     内核空间的虚拟地址映射到同一块物理内存.然后会创建Binder线程池(加上主Binder线程,Binder线程池最多16个线程).
-
-    进程间通信过程中:
-    当Client端向服务端发送数据时,binder驱动会先将Client用户空间数据复制到内核空间.而内核空间地址与Server端用户空间地址
-    映射同一块物理内存.所以通过地址偏移.Server端就可以获取到Client端发送的内容.
-    同时,如果进程间通信的数据中含有Binder对象.binder驱动会根据Binder代表的是BBinder还是BpBinder,相应的在驱动层建立binde_node.
+    通过Binder引用对象可以找到对应的Binder实际对象.然后会向目标进程的Binder线程的todo列表中,插入一条通信事务.
+    而在目标Binder所在进程的Binder线程中会处理该事物.
+    在传输过程中.如果通信内容包含binder对象.会在驱动中创建相应的Binder实际对象binder_node.以及Binder引用对象binder_ref.
 
 
-Native层:IPCThreadState,JavaBBinder(继承BBinder).BpBinder.
+Native层:IPCThreadState,JavaBBinder(继承BBinder)(Binder本地对象).  BpBinder(Binder代理对象,持有驱动层Binder引用对象的句柄).
 
     IPCThreadState是和Binder驱动通信的桥梁.不管是Client端还是Server端都是通过该类完成
     JavaBBinder持有Java层服务提供者.Binder驱动通过BBinder向Server端发起通信.
     BpBinder被Java层BinderProxy持有.Client端通过BpBidner向Binder驱动发起通信.
+    BpBinder持有驱动层Binder引用对象的句柄.在transact过程中,会将该句柄已经听信内容通过io_ctl传递给驱动层.
+    驱动层根据该句柄找到Binder实际对象.然后完成信息的传输.
 
 应用层:Binder.BinderProxy.
 
