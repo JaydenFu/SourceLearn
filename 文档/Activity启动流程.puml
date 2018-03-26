@@ -1,0 +1,68 @@
+@startuml
+Activity->Activity: startActivityResult
+Activity->Instrumentation:  execStartActivity
+Instrumentation->ActivityManagerProxy:  startActivity
+ActivityManagerProxy->ActivityManagerService:   startActivity进程间通信
+ActivityManagerService->ActivityManagerService: startActivityAsUser
+ActivityManagerService->ActivityStarter:    startActivityMayWait
+ActivityStarter->ActivityStarter:   startActivityLocked
+ActivityStarter->ActivityStarter:   startActivityUnChecked
+ActivityStarter->ActivityStack:     startActivityLocked
+ActivityStarter<--ActivityStack
+ActivityStarter->ActivityStackSupervisor:   resumeFocusStackActivityLocked
+ActivityStackSupervisor->ActivityStack:     resumeTopActivityUncheckedLocked
+ActivityStack->ActivityStack:   startPausingLocked
+ActivityStack->ApplicationThreadProxy:  schedulePauseActivity
+ApplicationThreadProxy->ApplicationThread:  schedulePauseActivity进程间通信
+ApplicationThread->ActivityThread:  sendMessage
+ActivityThread->H:  sendMessage
+H->H:   handMessage
+H->ActivityThread:  handPauseActivity
+ActivityThread->ActivityThread: performPauseActivity
+ActivityThread->ActivityThread: performPauseActivityIfNeeded
+ActivityThread->Instrumentation:    callActivityOnPause
+Instrumentation->Activity:  performPause
+Activity->Activity: onPause
+Activity-->ActivityThread:  回到ActivityThread的handPauseActivity中
+ActivityThread->ActivityManagerProxy:   activityPaused
+ActivityManagerProxy->ActivityManagerService:   activityPaused进程间通信
+ActivityManagerService->ActivityStack:  activityPausedLocked
+ActivityStack->ActivityStack:   completePausedLocked
+ActivityStack->ActivityStackSupervisor: resumeFocusedStackTopActivityLocked
+ActivityStackSupervisor->ActivityStack: resumeTopActivityUncheckedLocked
+ActivityStack->ActivityStack:   resumeTopActivityInnerLocked
+ActivityStack->ActivityStackSupervisor:     startSpecificActivityLocked
+ActivityStackSupervisor->ActivityManagerService:    startProcessLocked
+ActivityManagerService->Process:    start开启新的进程
+Process-->ActivityThread:   进程创建后会执行ActivityThread的main方法
+ActivityThread->ActivityThread: 在main方法中创建ActivityThread实例
+ActivityThread->ActivityThread: attach
+ActivityThread->ActivityManagerProxy:   attachApplication
+ActivityManagerProxy->ActivityManagerService:   attachApplication进程间通信
+ActivityManagerService->ActivityManagerService: attachApplicationLocked
+ActivityManagerService->ActivityStackSupervisor:    attachApplicationLocked
+ActivityStackSupervisor->ActivityStackSupervisor:   realStartActivity
+ActivityStackSupervisor->ApplicationThreadProxy:    scheduleLaunchActivity
+ApplicationThreadProxy->ApplicationThread:   scheduleLaunchActivity进程间通信
+ApplicationThread->ActivityThread:  sendMessage
+ActivityThread->H:  sendMessage
+H->H:   handMessage
+H->ActivityThread:  handLaunchActivity
+ActivityThread->ActivityThread: performLaunchActivity,在该方法中通过反射创建Activity实例
+ActivityThread->Activity:   执行Activity的attach方法
+Activity-->ActivityThread
+ActivityThread->Instrumentation:   callActivityOnCreate
+Instrumentation->Activity:  performCreate
+Activity->Activity: onCreate 生命周期
+Activity-->ActivityThread:回到ActivityThread的handLaunchActivity方法中
+ActivityThread->ActivityThread: handResumeActivity
+ActivityThread->ActivityThread: performResumeActivity
+ActivityThread->Activity:   performResume
+Activity->Activity: performRestart
+Activity->Activity: performStart
+Activity->Instrumentation:  callActivityOnStart
+Instrumentation->Activity:  onStart 生命周期
+Activity-->Activity: 回到Activity的performResume方法中
+Activity->Instrumentation: callActivityOnResume
+Instrumentation->Activity:  onResume  生命周期
+@enduml
