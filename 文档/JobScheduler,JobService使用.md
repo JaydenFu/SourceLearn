@@ -1,6 +1,6 @@
 #   JobScheduler,JobService使用
 JobScheduler,JobService是API21以上才能使用的任务调度系统.
-它的作用是用来调度应用在一定时间之后或者一定条件之下才执行相应的操作.
+它的作用是用来调度应用在一定时间之后或者一定条件之下才执行相应的操作.让应用延后批处理一些不重要的操作.
 ```
 基本使用:
         JobScheduler jobscheduler = (JobScheduler) context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
