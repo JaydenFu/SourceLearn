@@ -32,4 +32,6 @@
        new Thread(futureTask).start();
 ```
 
-2.
+2.  Object.wait  Thread.sleep
+    调用wait需要先持有对应object的锁.而sleep不需要.
+    wait会释放锁.sleep不会.
