@@ -41,7 +41,7 @@ ActivityThread->ActivityManagerProxy:   attachApplication
 ActivityManagerProxy->ActivityManagerService:   attachApplication进程间通信
 ActivityManagerService->ActivityManagerService: attachApplicationLocked
 ActivityManagerService->ActivityStackSupervisor:    attachApplicationLocked
-ActivityStackSupervisor->ActivityStackSupervisor:   realStartActivity
+ActivityStackSupervisor->ActivityStackSupervisor:   realStartActivityLocked
 ActivityStackSupervisor->ApplicationThreadProxy:    scheduleLaunchActivity
 ApplicationThreadProxy->ApplicationThread:   scheduleLaunchActivity进程间通信
 ApplicationThread->ActivityThread:  sendMessage
