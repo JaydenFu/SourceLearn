@@ -373,6 +373,6 @@ private void serviceDoneExecutingLocked(ServiceRecord r, boolean inDestroying,
 总结:
     对于Service的任何一个什么周期方法而言.都会在执行前.添加超时检测.执行后移除.如果任何一个生命周期方法中超时,则都会ANR.
     service的onDestory和unBind方法中,超时时间是200s.(通过源码知道.实际实验验证也确实如此)
-    其他什么周期则是10s.
+    其他生命周期方法内则是10s.
 ```
 
