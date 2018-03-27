@@ -1,8 +1,11 @@
 #   ANR产生原理(二)--BroadcastReceiver中的ANR产生
 
 BroadCast TimeOut: 在普通Intent启动的广播中60s内未执行完成, 前台广播则为10s(Intent设置了FLAG_RECEIVER_FOREGROUND flag,默认情况时没有设置的).
-对于通过代码动态注册的广播而言.接收无序广播,在onReceive方法是不存在ANR的.接收有序广播.存在ANR.
-通过Manifest静态注册的广播无论接收的是否是有序广播都存在超时一说导致ANR.
+*   对于通过代码动态注册的广播而言.接收无序广播,在onReceive方法是不直接导致ANR的(但是可能会间接导致.因为onReceiver占用主线程时间.
+如果还有另一个接收同样广播的静态注册的广播接收者,那么这个静态注册的广播接收者的onReceive方法就不能在超时时间内完成.同样会引起ANR).
+接收有序广播.超时会直接导致ANR.
+
+*   通过Manifest静态注册的广播无论接收的是否是有序广播都存在超时一说导致ANR.
 
 
 我们知道BroadcastReceiver接受到广播后,执行的是onReceive方法.先来看这个方法是怎么被调用执行的.
