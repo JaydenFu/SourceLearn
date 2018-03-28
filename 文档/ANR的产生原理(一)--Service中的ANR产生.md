@@ -8,7 +8,7 @@ ANR:Application Not Responding. 应用程序无响应.Android系统对于一些�
    *    Service TimeOut:在服务中20s未执行完成 . 后台服务则为200s(目前知道在执行onDestroy和unBind过程中,可能还有其他情况)
    *    BroadCast TimeOut: 在普通Intent启动的广播中60s内未执行完成, 前台广播则为10s(Intent设置了FLAG_RECEIVER_FOREGROUND flag).
    *    ContentProvider TimeOut:    内容提供者,在publish过超时10s.
-   *    InputDispatching    TimeOut:    输入事件(按键/触摸)分发超过5s.
+   *    InputDispatching    TimeOut:    输入事件(按键/触摸)分发超过5s.:超时检测在C层.InputDispatcher中.
 
 一.  Service中产生ANR
 
