@@ -1,0 +1,22 @@
+@startuml
+ContextWrapper -> ContextImpl: startService
+ContextImpl ->  ContextImpl:    startServiceCommon
+ContextImpl ->  ActivityManagerProxy:   startService
+ActivityManagerProxy -> ActivityManagerService: 进程间通信 startService
+ActivityManagerService ->   ActiveServices:  startServiceLocked
+ActiveServices ->   ActiveServices: startServiceInnerLocked
+ActiveServices ->   ActiveServices: bringUpServiceLocked
+ActiveServices ->  ActiveServices:  realStartServiceLocked
+ActiveServices ->   ApplicationThreadProxy: scheduleCreateService
+ApplicationThreadProxy ->   ApplicationThread:  进程间通信 scheduleCreateService
+ApplicationThread -> H: sendMessage 因为scheduleCreateService在Binder线程池，所以这里通过H handler切换回主线程
+H -> ActivityThread:    handleCreateService
+ActivityThread -> Service:  attach
+ActivityThread -> Service:  onCreate
+ActiveServices ->   ActiveServices: sendServiceArgsLocked : 因为上一步scheduleCreateService是ONE_WAYA方式，所以不会阻塞
+ActiveServices ->   ApplicationThreadProxy: scheduleServiceArgs
+ApplicationThreadProxy -> ApplicationThread: 进程间通信 scheduleServiceArgs
+ApplicationThread->H:sendMessage
+H->ActivityThread:  handleServiceArgs
+ActivityThread->Service: onStartCommand
+@enduml
