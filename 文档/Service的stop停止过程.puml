@@ -1,0 +1,16 @@
+@startuml
+ContextWrapper->ContextImpl:    stopService
+ContextImpl->ContextImpl:   stopServiceCommon
+ContextImpl->ActivityManagerProxy:  stopService
+ActivityManagerProxy->ActivityManagerService:   进程间通信 stopService
+ActivityManagerService->ActiveServices: stopServiceLocked(4个参数)
+ActiveServices->ActiveServices: retrieveServiceLocked
+ActiveServices->ActiveServices: stopServiceLocked（1个参数）
+ActiveServices->ActiveServices: bringDownServiceIfNeededLocked
+ActiveServices->ActiveServices: bringDownServiceLocked
+ActiveServices->ApplicationThreadProxy: scheduleStopService
+ApplicationThreadProxy->ApplicationThread:  进程间通信 scheduleStopService
+ApplicationThread->H:sendMessage
+H->ActivityThread:  handleStopService
+ActivityThread->Service:    onDestroy
+@enduml
