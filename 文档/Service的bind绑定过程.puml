@@ -1,0 +1,32 @@
+@startuml
+ContextWrapper->ContextImpl: bindService
+ContextImpl->ContextImpl:   bindServiceCommon
+ContextImpl->LoadedApk: getServiceDispatcher
+ContextImpl<--LoadedApk: 返回IServiceConnection
+ContextImpl->ActivityManagerProxy:  bindService
+ActivityManagerProxy->ActivityManagerService: 进程间通信 bindService
+ActivityManagerService->ActiveServices: bindServiceLocked
+ActiveServices->ActiveServices: retrieveServiceLocked
+ActiveServices->ServiceRecord:  retrieveAppBindingLocked
+ActiveServices<--ServiceRecord: 返回AppBindRecord
+ActiveServices->ActiveServices: bringUpServiceLocked
+ActiveServices->ActiveServices: realStartServiceLocked
+ActiveServices->ApplicationThreadProxy: scheduleCreateService
+ApplicationThreadProxy->ApplicationThread:进程间通信 scheduleCreateService
+ApplicationThread->H:sendMessage
+H->ActivityThread:  handleCreateService
+ActivityThread->Service:    创建并onCreate
+ActiveServices->ActiveServices: requestServiceBindingsLocked
+ActiveServices->ApplicationThreadProxy: scheduleBindService
+ApplicationThreadProxy->ApplicationThread: 进程间通信 scheduleBindService
+ApplicationThread->H:sendMessage
+H->ActivityThread:  handleBindService
+ActivityThread->Service:    onBind
+ActivityThread->ActivityManagerProxy:   publishService
+ActivityManagerProxy->ActivityManagerService: 进程间通信
+ActivityManagerService->ActiveServices: publishServiceLocked
+ActiveServices->ConnectionRecord.IServiceConnection:    connected
+ConnectionRecord.IServiceConnection->LoadedApk.ServiceDispatcher.InnerConnection:   进程间通信connected
+LoadedApk.ServiceDispatcher.InnerConnection->LoadedApk.ServiceDispatcher:   connected
+LoadedApk.ServiceDispatcher->ServiceConnection :    onServiceConnected
+@enduml

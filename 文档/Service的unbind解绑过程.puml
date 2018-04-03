@@ -1,0 +1,13 @@
+@startuml
+ContextWrapper->ContextImpl: unbindService
+ContextImpl->ActivityManagerProxy:  unbindService
+ActivityManagerProxy->ActivityManagerService: 进程间通信 unbindService
+ActivityManagerService->ActiveServices: unbindServiceLocked
+ActiveServices->ActiveServices: removeConnectionLocked
+ActiveServices->ApplicationThreadProxy: scheduleUnbindService
+ApplicationThreadProxy->ApplicationThread:进程间通信 scheduleUnbindService
+ApplicationThread->H: sendMessage
+H->ActivityThread:  handleUnbindService
+ActivityThread->Service:    onUnbind
+ActiveServices->ActiveServices: bringDownServiceIfNeeded 后续逻辑stop中逻辑一致
+@enduml
