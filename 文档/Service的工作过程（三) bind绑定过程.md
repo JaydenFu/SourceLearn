@@ -538,6 +538,7 @@ public void doConnected(ComponentName name, IBinder service) {
                     info.deathMonitor = new DeathMonitor(name, service);
                     try {
                         //2.对binder设置一个死亡代理，当binder死掉的时候，会通知deathMonitor
+                        //DeathMonitor会回调ServiceConnection的onServiceDisconnected方法
                         service.linkToDeath(info.deathMonitor, 0);
                         //3.将ConnectonInfo添加到mActiveConnections集合中
                         mActiveConnections.put(name, info);
