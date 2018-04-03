@@ -1,0 +1,31 @@
+@startuml
+ContextWrapper -> ContextImpl:   sendBroadcast
+ContextImpl -> ActivityManagerProxy:    broadcastIntent
+ActivityManagerProxy -> ActivityManagerService: 进程间通信 broadcastIntent
+ActivityManagerService -> ActivityManagerService:   broadcastIntentLocked
+ActivityManagerService -> ActivityManagerService:   collectReceiverComponents 查找静态注册的广播接收者
+ActivityManagerService -> IntentResolver:   通过mReceiverResolver获取动态注册的广播接收者
+ActivityManagerService <-- IntentResolver
+ActivityManagerService -> BroadcastQueue: enqueueParallelBroadcastLocked 无序广播（动态注册接收者）
+ActivityManagerService <-- BroadcastQueue
+ActivityManagerService -> BroadcastQueue: scheduleBroadcastLocked
+ActivityManagerService -> BroadcastQueue: enqueueOrderBroadcastLocked 有序广播（所有接收者），无序广播（静态注册接受者）
+ActivityManagerService <-- BroadcastQueue
+ActivityManagerService -> BroadcastQueue:  scheduleBroadcastLocked
+BroadcastQueue -> BroadcastQueue.BroadcastHandler: sendMessage
+BroadcastQueue.BroadcastHandler -> BroadcastQueue:  processNextBroadcast
+BroadcastQueue -> BroadcastQueue:   deliverToRegisterReceiverLocked 发送无序广播给动态注册的接受者
+BroadcastQueue -> BroadcastQueue:   performReceiveLocked
+BroadcastQueue -> ApplicationThreadProxy: scheduleRegisterReceiver
+ApplicationThreadProxy -> ApplicationThread:    进程间通信 scheduleRegisterReceiver
+ApplicationThread -> LoadedApk.ReceiverDispatcher.IIntentReceiver: performReceive
+LoadedApk.ReceiverDispatcher.IIntentReceiver -> LoadedApk.ReceiverDispatcher: performReceive
+LoadedApk.ReceiverDispatcher -> H: post  Args
+LoadedApk.ReceiverDispatcher.Args -> BroadcastReceiver: onReceiver
+BroadcastQueue -> ApplicationThreadProxy:   scheduleReceiver 发送广播给静态注册者
+ApplicationThreadProxy -> ApplicationThread:  进程间通信 scheduleReceiver
+ApplicationThread -> H: sendMessage
+H -> ActivityThread: handleReceiver 创建Receiver实例
+ActivityThread -> BroadcastReceiver: onReceiver
+
+@enduml
