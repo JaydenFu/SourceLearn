@@ -1,0 +1,9 @@
+@startuml
+ContextWrapper->ContextImpl:    registerReceiver
+ContextImpl->ContextImpl:   registerReceiverInternal
+ContextImpl->LoadedApk: getReceiverDispatcher
+ContextImpl<--LoadedApk: 返回IIntentReceiver用于进程间通信
+ContextImpl->ActivityManagerProxy: registerReceiver
+ActivityManagerProxy->ActivityManagerService:   进程间通信 registerReceiver
+
+@endumlf
