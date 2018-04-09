@@ -1,5 +1,7 @@
 #   ArrayList 实现原理
 
+通过数组实现，内部维护Object[] elementData， size
+
 1.  ArrayList初始化
 ```
     private static final Object[] DEFAULTCAPACITY_EMPTY_ELEMENTDATA = {};
